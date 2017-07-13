@@ -1,7 +1,10 @@
 package de.android.beatbox.utils;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.util.Log;
 
 import java.io.IOException;
@@ -10,13 +13,17 @@ import java.util.List;
 
 public class BeatBox {
     private static final String TAG = "BeatBox";
-    public static final String SOUNDS_FOLDER = "sample_sounds";
+    private static final String SOUNDS_FOLDER = "sample_sounds";
+    private static final int MAX_SOUNDS = 5;
+
 
     private AssetManager assets;
     private List<Sound> sounds = new ArrayList<>();
+    private SoundPool soundPool;
 
     public BeatBox(Context context) {
         assets = context.getAssets();
+        soundPool = new SoundPool(MAX_SOUNDS, AudioManager.STREAM_MUSIC, 0);
         loadSounds();
     }
 
@@ -31,10 +38,21 @@ public class BeatBox {
         }
 
         for (String filename : soundNames) {
-            String assetPath = SOUNDS_FOLDER + "/" + filename;
-            Sound sound = new Sound(assetPath);
-            sounds.add(sound);
+            try {
+                String assetPath = SOUNDS_FOLDER + "/" + filename;
+                Sound sound = new Sound(assetPath);
+                load(sound);
+                sounds.add(sound);
+            }catch (IOException e) {
+                Log.e(TAG, "Could not load sound " + filename, e);
+            }
         }
+    }
+
+    private void load(Sound sound) throws IOException {
+        AssetFileDescriptor afd = assets.openFd(sound.getAssetPath());
+        int soundId = soundPool.load(afd, 1);
+        sound.setSoundId(soundId);
     }
 
     public List<Sound> getSounds() {
